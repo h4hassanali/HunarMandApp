@@ -2,11 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hassan_app/widgets/footer_note.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../data/workers_data.dart';
+import '../../models/worker_model.dart';
 import '../../widgets/worker_card.dart';
+import '../../data/worker_service.dart';
 
-class WorkerResultsScreen extends StatelessWidget {
+class WorkerResultsScreen extends StatefulWidget {
   const WorkerResultsScreen({super.key});
+
+  @override
+  State<WorkerResultsScreen> createState() => _WorkerResultsScreenState();
+}
+
+class _WorkerResultsScreenState extends State<WorkerResultsScreen> {
+  late Future<List<WorkerModel>> _workersFuture;
+  final WorkerService _workerService = WorkerService();
 
   /// Launch phone dialer safely
   Future<void> _launchDialer(BuildContext context, String phoneNumber) async {
@@ -41,61 +50,76 @@ class WorkerResultsScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Safe nullable arguments
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     final args =
         ModalRoute.of(context)!.settings.arguments as Map<String, String?>?;
     final String province = args?['province'] ?? '';
     final String city = args?['city'] ?? '';
     final String skill = args?['skill'] ?? '';
 
-    // Filter registered workers (case-insensitive)
-    final workers = registeredWorkers
-        .where(
-          (w) =>
-              w.city.toLowerCase() == city.toLowerCase() &&
-              w.skill.toLowerCase().contains(skill.toLowerCase()),
-        )
-        .toList();
+    _workersFuture = _workerService.fetchFilteredWorkers(
+      city: city,
+      skill: skill,
+    );
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('دستیاب کاریگر')),
       body: FooterNote(
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Expanded(
-                  child: workers.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'اس وقت اس شہر میں آپ کی منتخب کردہ مہارت کے کوئی کاریگر دستیاب نہیں ہیں۔',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: workers.length,
-                          itemBuilder: (context, index) {
-                            final worker = workers[index];
+            child: FutureBuilder<List<WorkerModel>>(
+              future: _workersFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text('کاریگر لوڈ کرنے میں مسئلہ ہوا'),
+                  );
+                }
 
-                            return WorkerCard(
-                              worker: worker,
-                              onCall: () =>
-                                  _launchDialer(context, worker.phone),
-                              onCopy: () => _copyPhone(context, worker.phone),
-                            );
-                          },
-                        ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'نوٹ:\nیہ پلیٹ فارم صرف کاریگروں اور صارفین کو آپس میں ملانے کے لیے ہے۔\nکسی بھی کام سے پہلے خود تسلی ضرور کریں۔',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
+                final workers = snapshot.data ?? [];
+
+                if (workers.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'اس وقت اس شہر میں آپ کی منتخب کردہ مہارت کے کوئی کاریگر دستیاب نہیں ہیں۔',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: workers.length,
+                        itemBuilder: (context, index) {
+                          final worker = workers[index];
+                          return WorkerCard(
+                            worker: worker,
+                            onCall: () => _launchDialer(context, worker.phone),
+                            onCopy: () => _copyPhone(context, worker.phone),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'نوٹ:\nیہ پلیٹ فارم صرف کاریگروں اور صارفین کو آپس میں ملانے کے لیے ہے۔\nکسی بھی کام سے پہلے خود تسلی ضرور کریں۔',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
