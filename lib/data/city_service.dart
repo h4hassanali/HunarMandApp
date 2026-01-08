@@ -15,8 +15,6 @@ class CityService {
       // Each document has a field with the same name as the province
       final citiesList = List<String>.from(doc.get(province));
       result[province] = citiesList;
-
-      print('Province: $province, Cities: $citiesList'); // for debugging
     }
 
     return result;
