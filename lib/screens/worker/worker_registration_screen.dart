@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hassan_app/widgets/footer_note.dart';
-import '../../data/skills.dart';
 import '../../data/firestore_service.dart';
 import '../../data/city_service.dart';
+import '../../data/skill_service.dart'; // <-- new
 import '../../models/worker_model.dart';
 
 class WorkerRegistrationScreen extends StatefulWidget {
@@ -25,13 +25,17 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
 
   final FirestoreService _firestoreService = FirestoreService();
   final CityService _cityService = CityService();
+  final SkillService _skillService = SkillService(); // <-- new
 
   late Future<Map<String, List<String>>> _citiesFuture;
+  late Future<List<String>> _skillsFuture; // <-- new
 
   @override
   void initState() {
     super.initState();
     _citiesFuture = _cityService.fetchCities();
+    _skillsFuture = _skillService
+        .fetchSkills(); // <-- fetch skills from Firebase
   }
 
   @override
@@ -147,31 +151,48 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Skills
-                      InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'مہارت منتخب کریں',
-                          border: OutlineInputBorder(),
-                        ),
-                        child: Column(
-                          children: skills
-                              .map(
-                                (skill) => CheckboxListTile(
-                                  title: Text(skill),
-                                  value: _selectedSkills.contains(skill),
-                                  onChanged: (selected) {
-                                    setState(() {
-                                      if (selected == true) {
-                                        _selectedSkills.add(skill);
-                                      } else {
-                                        _selectedSkills.remove(skill);
-                                      }
-                                    });
-                                  },
-                                ),
-                              )
-                              .toList(),
-                        ),
+                      // Skills fetched from Firebase
+                      FutureBuilder<List<String>>(
+                        future: _skillsFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          if (snapshot.hasError || !snapshot.hasData) {
+                            return const Center(
+                              child: Text('مہارتیں لوڈ کرنے میں مسئلہ ہوا'),
+                            );
+                          }
+                          final skills = snapshot.data!;
+                          return InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'مہارت منتخب کریں',
+                              border: OutlineInputBorder(),
+                            ),
+                            child: Column(
+                              children: skills
+                                  .map(
+                                    (skill) => CheckboxListTile(
+                                      title: Text(skill),
+                                      value: _selectedSkills.contains(skill),
+                                      onChanged: (selected) {
+                                        setState(() {
+                                          if (selected == true) {
+                                            _selectedSkills.add(skill);
+                                          } else {
+                                            _selectedSkills.remove(skill);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 30),
 
