@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hassan_app/widgets/footer_note.dart';
 import '../../data/cities.dart';
 import '../../data/skills.dart';
-import '../../data/workers_data.dart';
+import '../../data/firestore_service.dart';
 import '../../models/worker_model.dart';
 
 class WorkerRegistrationScreen extends StatefulWidget {
@@ -22,6 +22,9 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
   String? _selectedProvince;
   String? _selectedCity;
   final List<String> _selectedSkills = [];
+
+  // Firestore service instance
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +76,7 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
 
                   // Province dropdown
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedProvince,
+                    value: _selectedProvince,
                     decoration: const InputDecoration(
                       labelText: 'صوبہ منتخب کریں',
                       border: OutlineInputBorder(),
@@ -150,20 +153,28 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
 
                   // Submit button
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate() &&
                           _selectedSkills.isNotEmpty) {
-                        // Add to in-memory list
-                        registeredWorkers.add(
-                          WorkerModel(
-                            name: _nameController.text,
-                            phone: _phoneController.text,
-                            skill: _selectedSkills.join(', '),
-                            city: _selectedCity!,
-                          ),
+                        final worker = WorkerModel(
+                          name: _nameController.text.trim(),
+                          phone: _phoneController.text.trim(),
+                          skill: _selectedSkills.join(', '),
+                          city: _selectedCity!,
                         );
 
-                        Navigator.pushNamed(context, '/register-success');
+                        try {
+                          await _firestoreService.addWorker(worker);
+
+                          if (!mounted) return;
+                          Navigator.pushNamed(context, '/register-success');
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('کچھ غلط ہو گیا، دوبارہ کوشش کریں'),
+                            ),
+                          );
+                        }
                       } else if (_selectedSkills.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
