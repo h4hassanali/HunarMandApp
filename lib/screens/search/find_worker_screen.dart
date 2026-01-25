@@ -64,6 +64,19 @@ class _FindWorkerScreenState extends State<FindWorkerScreen> {
     }
   }
 
+  // Helper to build chips
+  Widget _buildChip(String label) {
+    return ActionChip(
+      label: Text(label),
+      backgroundColor: Colors.white,
+      side: BorderSide(color: Colors.grey.shade300),
+      onPressed: () {
+        // Simple mock population
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Quick search selected")));
+      },
+    );
+  }
+
   // Helper method to build dropdown labels
   Widget _buildDropdownLabel(BuildContext context, String text) {
     return Padding(
@@ -140,6 +153,21 @@ class _FindWorkerScreenState extends State<FindWorkerScreen> {
                                 ),
                               ),
                               
+                              const SizedBox(height: 12),
+                              Text(
+                                "Popular Searches",
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _buildChip("Lahore - Plumber"),
+                                  _buildChip("Karachi - Electrician"),
+                                  _buildChip("Islamabad - AC Repair"),
+                                ],
+                              ),
                               const SizedBox(height: 30),
 
                               // Province Dropdown

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/worker_model.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class WorkerCard extends StatelessWidget {
   final WorkerModel worker;
@@ -89,9 +90,27 @@ class WorkerCard extends StatelessWidget {
               Column(
                 children: [
                   IconButton(
+                    onPressed: () async {
+                       final Uri whatsappUri = Uri.parse("https://wa.me/${worker.phone}?text=Hello, I found you on HunarMand");
+                       if (await canLaunchUrl(whatsappUri)) {
+                         await launchUrl(whatsappUri);
+                       }
+                    },
+                    icon: const Icon(Icons.chat, color: Colors.green),
+                    tooltip: 'WhatsApp',
+                  ),
+                  IconButton(
                     onPressed: onCopy,
-                    icon: const Icon(Icons.call, color: Colors.green),
+                    icon: const Icon(Icons.call, color: Colors.blue),
                     tooltip: l10n.btnCopyPhone,
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      // Mock favorite toggle
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Added to Saved Workers")));
+                    },
+                    icon: const Icon(Icons.favorite_border, color: Colors.red),
+                    tooltip: 'Save',
                   ),
                 ],
               ),

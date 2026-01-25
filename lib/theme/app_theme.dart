@@ -1,26 +1,27 @@
 import 'package:flutter/material.dart';
 
 // Professional Marketplace Colors
-const Color primaryColor = Color(0xFF10B981); // Emerald Green (Growth, Success)
-const Color primaryDark = Color(0xFF059669);
-const Color accentColor = Color(0xFFF59E0B); // Amber (Highlights, Ratings)
+const Color primaryColor = Color(0xFF1F8A70); // Brand Green
+const Color secondaryColor = Color(0xFF3A7CA5); // Soft Blue
+const Color accentColor = Color(0xFFF4A261); // Orange
 const Color surfaceColor = Color(0xFFFFFFFF);
-const Color backgroundColor = Color(0xFFF9FAFB); // Very light grey
-const Color textPrimary = Color(0xFF1F2937); // Dark Blue-Grey
-const Color textSecondary = Color(0xFF6B7280); // Medium Grey
+const Color backgroundColor = Color(0xFFF9FAFB);
+const Color textPrimary = Color(0xFF1A1A1A);
+const Color textSecondary = Color(0xFF6B7280);
 const Color errorColor = Color(0xFFEF4444);
 
 final ThemeData lightTheme = ThemeData(
   useMaterial3: true,
   primaryColor: primaryColor,
   scaffoldBackgroundColor: backgroundColor,
-  fontFamily: 'JameelNoori', // Works for both English (as fallback) and Urdu
+  fontFamily: 'JameelNoori',
   brightness: Brightness.light,
   
   colorScheme: ColorScheme.fromSeed(
     seedColor: primaryColor,
     primary: primaryColor,
-    secondary: accentColor,
+    secondary: secondaryColor,
+    tertiary: accentColor,
     surface: surfaceColor,
     background: backgroundColor,
     error: errorColor,

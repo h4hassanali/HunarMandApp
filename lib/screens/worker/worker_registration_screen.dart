@@ -4,6 +4,7 @@ import '../../data/firestore_service.dart';
 import '../../data/city_service.dart';
 import '../../data/skill_service.dart';
 import '../../models/worker_model.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class WorkerRegistrationScreen extends StatefulWidget {
   const WorkerRegistrationScreen({super.key});
@@ -14,7 +15,11 @@ class WorkerRegistrationScreen extends StatefulWidget {
 }
 
 class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final _formKeyStep1 = GlobalKey<FormState>();
+  final _formKeyStep2 = GlobalKey<FormState>();
+
+  final PageController _pageController = PageController();
+  int _currentStep = 0;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -30,8 +35,8 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
   late Future<Map<String, List<String>>> _citiesFuture;
   late Future<List<String>> _skillsFuture;
 
-  bool _isLoading = true; // initial page loading
-  bool _isSubmitting = false; // form submission loading
+  bool _isLoading = true;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -49,13 +54,29 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
     setState(() => _isLoading = false);
   }
 
+  void _nextStep() {
+    if (_currentStep == 0) {
+      if (_formKeyStep1.currentState!.validate()) {
+        _pageController.nextPage(
+            duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        setState(() => _currentStep = 1);
+      }
+    }
+  }
+
+  void _prevStep() {
+    if (_currentStep == 1) {
+      _pageController.previousPage(
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      setState(() => _currentStep = 0);
+    }
+  }
+
   void _submitForm() async {
-    if (!_formKey.currentState!.validate() || _selectedSkills.isEmpty) {
+    if (!_formKeyStep2.currentState!.validate() || _selectedSkills.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.errorSelectSkill),
-        ),
+        SnackBar(content: Text(l10n.errorSelectSkill)),
       );
       return;
     }
@@ -76,7 +97,7 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
     } catch (_) {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorLoadingCities)),
+        SnackBar(content: Text(l10n.errorLoadingCities)), // Generic error
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -89,243 +110,227 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-        appBar: AppBar(title: Text(l10n.workerRegistrationTitle)),
-        body: SingleChildScrollView(
-            child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: _isLoading
-                ? SizedBox(height: 300, child: Center(child: CircularProgressIndicator(color: theme.primaryColor)))
-                : FutureBuilder<Map<String, List<String>>>(
+      appBar: AppBar(title: Text(l10n.workerRegistrationTitle)),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
+          : Column(
+              children: [
+                _buildProgressIndicator(theme),
+                Expanded(
+                  child: FutureBuilder<Map<String, List<String>>>(
                     future: _citiesFuture,
                     builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const SizedBox.shrink();
-                        }
+                      if (!snapshot.hasData) return const SizedBox.shrink();
+                      final cities = snapshot.data!;
 
-                        if (snapshot.hasError || !snapshot.hasData) {
-                        return Center(
-                            child: Text(
-                            l10n.errorLoadingCities,
-                            style: TextStyle(color: theme.colorScheme.error),
-                            ),
-                        );
-                        }
-
-                        final cities = snapshot.data!;
-
-                        return Form(
-                        key: _formKey,
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                            Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                color: theme.colorScheme.secondary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: theme.colorScheme.secondary.withOpacity(0.3)),
-                                ),
-                                child: Row(
-                                children: [
-                                    Icon(Icons.info_outline, color: theme.colorScheme.secondary),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                    child: Text(
-                                        l10n.findWorkerInstruction, // Reusing existing string or add new "Fill details carefully"
-                                        style: TextStyle(color: theme.colorScheme.secondary),
-                                    ),
-                                    ),
-                                ],
-                                ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            _buildSectionHeader(context, 'Personal Information'),
-                            
-                            // Name
-                            TextFormField(
-                                controller: _nameController,
-                                decoration: InputDecoration(
-                                labelText: l10n.labelName,
-                                hintText: l10n.hintName,
-                                prefixIcon: const Icon(Icons.person),
-                                ),
-                                validator: (value) =>
-                                    value == null || value.isEmpty
-                                    ? l10n.errorName
-                                    : null,
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Phone
-                            TextFormField(
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                decoration: InputDecoration(
-                                labelText: l10n.labelPhone,
-                                hintText: l10n.hintPhone,
-                                prefixIcon: const Icon(Icons.phone),
-                                ),
-                                validator: (value) =>
-                                    value == null || value.isEmpty
-                                    ? l10n.errorPhone
-                                    : null,
-                            ),
-                            const SizedBox(height: 32),
-
-                            _buildSectionHeader(context, 'Location'),
-
-                            // Province
-                            DropdownButtonFormField<String>(
-                                value: _selectedProvince,
-                                decoration: InputDecoration(
-                                labelText: l10n.selectProvince,
-                                prefixIcon: const Icon(Icons.map),
-                                ),
-                                items: cities.keys
-                                    .map(
-                                        (province) =>
-                                            DropdownMenuItem(
-                                            value: province,
-                                            child: Text(province),
-                                            ),
-                                    )
-                                    .toList(),
-                                onChanged: (value) {
-                                    setState(() {
-                                    _selectedProvince = value;
-                                    _selectedCity = null;
-                                    });
-                                },
-                                validator: (value) => value == null
-                                    ? l10n.errorSelectProvince
-                                    : null,
-                            ),
-                            const SizedBox(height: 16),
-
-                            // City
-                            DropdownButtonFormField<String>(
-                                value: _selectedCity,
-                                decoration: InputDecoration(
-                                labelText: l10n.selectCity,
-                                prefixIcon: const Icon(Icons.location_city),
-                                ),
-                                items: _selectedProvince == null
-                                    ? []
-                                    : cities[_selectedProvince!]!
-                                            .map(
-                                            (city) =>
-                                                DropdownMenuItem(
-                                                    value: city,
-                                                    child: Text(city),
-                                                ),
-                                            )
-                                            .toList(),
-                                onChanged: (value) => setState(
-                                    () => _selectedCity = value,
-                                ),
-                                validator: (value) => value == null
-                                    ? l10n.errorSelectCity
-                                    : null,
-                            ),
-                            const SizedBox(height: 32),
-
-                            _buildSectionHeader(context, 'Skills'),
-
-                            // Skills
-                            FutureBuilder<List<String>>(
-                                future: _skillsFuture,
-                                builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                    return const LinearProgressIndicator();
-                                }
-                                if (snapshot.hasError ||
-                                    !snapshot.hasData) {
-                                    return Text(l10n.errorLoadingSkills, style: TextStyle(color: theme.colorScheme.error));
-                                }
-                                final skills = snapshot.data!;
-                                return Container(
-                                    decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey.shade300),
-                                    borderRadius: BorderRadius.circular(12),
-                                    color: theme.cardColor,
-                                    ),
-                                    child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                        Padding(
-                                        padding: const EdgeInsets.all(12),
-                                        child: Text(
-                                            l10n.labelSkill,
-                                            style: const TextStyle(fontWeight: FontWeight.bold),
-                                        ),
-                                        ),
-                                        const Divider(height: 1),
-                                        ...skills.map(
-                                            (skill) => CheckboxListTile(
-                                            title: Text(skill),
-                                            value: _selectedSkills
-                                                .contains(skill),
-                                            activeColor: theme.primaryColor,
-                                            onChanged: (selected) {
-                                                setState(() {
-                                                if (selected ==
-                                                    true) {
-                                                    _selectedSkills.add(
-                                                    skill,
-                                                    );
-                                                } else {
-                                                    _selectedSkills
-                                                        .remove(skill);
-                                                }
-                                                });
-                                            },
-                                            ),
-                                        ),
-                                    ],
-                                    ),
-                                );
-                                },
-                            ),
-                            const SizedBox(height: 40),
-
-                            // Submit
-                            SizedBox(
-                                height: 56,
-                                child: ElevatedButton(
-                                onPressed: _isSubmitting
-                                    ? null
-                                    : _submitForm,
-                                child: _isSubmitting 
-                                    ? const CircularProgressIndicator(color: Colors.white)
-                                    : Text(
-                                        l10n.btnRegister,
-                                        style: const TextStyle(fontSize: 18),
-                                    ),
-                                ),
-                            ),
-                            const SizedBox(height: 40),
-                            ],
-                        ),
-                        );
+                      return PageView(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildStep1(l10n, theme),
+                          _buildStep2(l10n, theme, cities),
+                        ],
+                      );
                     },
+                  ),
                 ),
+              ],
             ),
-        ),
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title) {
+  Widget _buildProgressIndicator(ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).primaryColor,
-          letterSpacing: 1.0,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+      child: Row(
+        children: [
+          _buildStepCircle(theme, 1, _currentStep >= 0),
+          Expanded(child: Divider(color: theme.primaryColor, thickness: 2)),
+          _buildStepCircle(theme, 2, _currentStep >= 1),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepCircle(ThemeData theme, int step, bool isActive) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: isActive ? theme.primaryColor : Colors.grey[300],
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          '$step',
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.grey[600],
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    ).animate(target: isActive ? 1 : 0).scale(duration: 300.ms);
+  }
+
+  Widget _buildStep1(AppLocalizations l10n, ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Form(
+        key: _formKeyStep1,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              "Personal Information",
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: theme.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Let's start with your basic details",
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 30),
+
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: l10n.labelName,
+                prefixIcon: const Icon(Icons.person_outline),
+                fillColor: Colors.white,
+              ),
+              validator: (v) => v?.isEmpty ?? true ? l10n.errorName : null,
+            ),
+            const SizedBox(height: 20),
+
+            TextFormField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: l10n.labelPhone,
+                prefixIcon: const Icon(Icons.phone_outlined),
+                fillColor: Colors.white,
+              ),
+              validator: (v) => v?.isEmpty ?? true ? l10n.errorPhone : null,
+            ),
+
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: _nextStep,
+              child: const Text('Next Step'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep2(AppLocalizations l10n, ThemeData theme, Map<String, List<String>> cities) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Form(
+        key: _formKeyStep2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+               alignment: Alignment.centerLeft,
+               child: TextButton.icon(
+                 onPressed: _prevStep,
+                 icon: const Icon(Icons.arrow_back),
+                 label: const Text("Back"),
+               ),
+            ),
+            
+            Text(
+              "Work Details",
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: theme.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+             const SizedBox(height: 8),
+            Text(
+              "Where do you work and what do you do?",
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 30),
+
+            DropdownButtonFormField<String>(
+              value: _selectedProvince,
+              items: cities.keys.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+              onChanged: (v) => setState(() {
+                _selectedProvince = v;
+                _selectedCity = null;
+              }),
+              decoration: InputDecoration(
+                labelText: l10n.selectProvince,
+                prefixIcon: const Icon(Icons.map_outlined),
+                 fillColor: Colors.white,
+              ),
+              validator: (v) => v == null ? l10n.errorSelectProvince : null,
+            ),
+            const SizedBox(height: 20),
+
+            DropdownButtonFormField<String>(
+              value: _selectedCity,
+              items: _selectedProvince == null ? [] : cities[_selectedProvince]!.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              onChanged: (v) => setState(() => _selectedCity = v),
+              decoration: InputDecoration(
+                labelText: l10n.selectCity,
+                prefixIcon: const Icon(Icons.location_city_outlined),
+                 fillColor: Colors.white,
+              ),
+              validator: (v) => v == null ? l10n.errorSelectCity : null,
+            ),
+
+            const SizedBox(height: 30),
+            
+            // Skills
+            FutureBuilder<List<String>>(
+              future: _skillsFuture,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const CircularProgressIndicator();
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      children: snapshot.data!.map((skill) {
+                        return CheckboxListTile(
+                          title: Text(skill),
+                          value: _selectedSkills.contains(skill),
+                          activeColor: theme.primaryColor,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              if (value == true) {
+                                _selectedSkills.add(skill);
+                              } else {
+                                _selectedSkills.remove(skill);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                );
+              }
+            ),
+
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: _isSubmitting ? null : _submitForm,
+              child: _isSubmitting
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(l10n.btnRegister),
+            ),
+          ],
         ),
       ),
     );

@@ -10,6 +10,8 @@ import '../screens/worker/registration_success_screen.dart';
 import '../screens/search/find_worker_screen.dart';
 import '../screens/search/worker_results_screen.dart';
 
+import 'package:hassan_app/screens/saved_workers_screen.dart';
+
 /// All routes used in the app are defined here
 final Map<String, WidgetBuilder> appRoutes = {
   '/': (context) => const SplashScreen(),
@@ -22,5 +24,6 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/settings': (context) => const SettingsScreen(),
   '/about': (context) => const AboutScreen(),
   '/worker-profile': (context) => const WorkerProfileScreen(),
+  '/saved-workers': (context) => const SavedWorkersScreen(),
 };
 

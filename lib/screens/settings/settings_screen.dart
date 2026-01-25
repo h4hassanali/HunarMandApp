@@ -22,6 +22,47 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Account Section
+          _buildSectionHeader(context, "ACCOUNT"),
+          Card(
+             elevation: 0,
+             shape: RoundedRectangleBorder(
+               borderRadius: BorderRadius.circular(12),
+               side: BorderSide(color: Colors.grey.shade200),
+             ),
+             child: Column(
+               children: [
+                 ListTile(
+                   leading: const Icon(Icons.person_outline, color: Colors.purple),
+                   title: const Text("My Profile"),
+                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                   onTap: () {
+                     // Navigate to profile edit (placeholder)
+                   },
+                 ),
+                 const Divider(height: 1),
+                 ListTile(
+                   leading: const Icon(Icons.favorite_outline, color: Colors.red),
+                   title: const Text("Saved Workers"),
+                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                   onTap: () {
+                      Navigator.pushNamed(context, '/saved-workers');
+                   },
+                 ),
+                 const Divider(height: 1),
+                  ListTile(
+                   leading: const Icon(Icons.history, color: Colors.blue),
+                   title: const Text("My Registrations"),
+                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                   onTap: () {
+                     // Placeholder
+                   },
+                 ),
+               ],
+             ),
+          ),
+          const SizedBox(height: 24),
+
           // Language Section
           _buildSectionHeader(context, l10n.settingsLanguage),
           Card(

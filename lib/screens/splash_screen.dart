@@ -23,20 +23,41 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Gradient colors: Green -> Blue
+    final gradientColors = [
+      const Color(0xFF1F8A70),
+      const Color(0xFF3A7CA5),
+    ];
+
     return Scaffold(
-      backgroundColor: Theme.of(context).primaryColor,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo Icon with subtle scale animation
-            Icon(
-              Icons.handyman_rounded,
-              size: 100,
-              color: Colors.white,
-            ).animate()
-              .scale(duration: 600.ms, curve: Curves.easeOutBack)
-              .fade(duration: 400.ms),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo Icon with subtle scale animation
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.handyman_rounded,
+                  size: 80,
+                  color: theme.primaryColor,
+                ),
+              ).animate()
+                .scale(duration: 600.ms, curve: Curves.easeOutBack)
+                .fade(duration: 400.ms),
 
             const SizedBox(height: 20),
 
@@ -71,6 +92,7 @@ class _SplashScreenState extends State<SplashScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }

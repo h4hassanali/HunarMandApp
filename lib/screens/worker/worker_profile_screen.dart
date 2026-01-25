@@ -77,32 +77,56 @@ class WorkerProfileScreen extends StatelessWidget {
                 ),
               ),
             ),
-
-            const SizedBox(height: 30),
-
-            // Actions
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final Uri launchUri = Uri(
-                        scheme: 'tel',
-                        path: worker.phone,
-                      );
-                      if (await canLaunchUrl(launchUri)) {
-                        await launchUrl(launchUri);
-                      }
-                    },
-                    icon: const Icon(Icons.call),
-                    label: Text(l10n.profileCallNow),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.green,
-                    ),
-                  ),
+             const SizedBox(height: 100), // Spacing for sticky bottom
+          ],
+        ),
+      ),
+      bottomSheet: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                   final Uri whatsappUri = Uri.parse("https://wa.me/${worker.phone}?text=Hello, I found you on HunarMand");
+                   if (await canLaunchUrl(whatsappUri)) {
+                     await launchUrl(whatsappUri);
+                   }
+                },
+                icon: const Icon(Icons.chat),
+                label: const Text("WhatsApp"),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  foregroundColor: Colors.green,
+                  side: const BorderSide(color: Colors.green),
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final Uri launchUri = Uri(
+                    scheme: 'tel',
+                    path: worker.phone,
+                  );
+                  if (await canLaunchUrl(launchUri)) {
+                    await launchUrl(launchUri);
+                  }
+                },
+                icon: const Icon(Icons.call),
+                label: Text(l10n.profileCallNow),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: theme.primaryColor,
+                ),
+              ),
             ),
           ],
         ),

@@ -22,7 +22,50 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
          title: Text(l10n.appTitle),
-         automaticallyImplyLeading: false, // Hide back button on home tab
+         centerTitle: true,
+         actions: [
+           IconButton(
+             icon: const Icon(Icons.language),
+             onPressed: () => Navigator.pushNamed(context, '/settings'),
+           ),
+         ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: const Text("Guest User"), 
+              accountEmail: const Text("guest@hunarmand.pk"),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Text("G", style: TextStyle(fontSize: 24, color: theme.primaryColor)),
+              ),
+              decoration: BoxDecoration(color: theme.primaryColor),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('Home'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.favorite),
+              title: const Text('Saved Workers'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/saved-workers');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/settings');
+              },
+            ),
+          ],
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
