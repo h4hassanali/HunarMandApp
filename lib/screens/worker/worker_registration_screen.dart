@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hassan_app/widgets/footer_note.dart';
+import '../../l10n/app_localizations.dart';
 import '../../data/firestore_service.dart';
 import '../../data/city_service.dart';
 import '../../data/skill_service.dart';
@@ -51,9 +51,10 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
 
   void _submitForm() async {
     if (!_formKey.currentState!.validate() || _selectedSkills.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('براہِ کرم تمام فیلڈز درست طریقے سے بھریں'),
+        SnackBar(
+          content: Text(l10n.errorSelectSkill),
         ),
       );
       return;
@@ -73,8 +74,9 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
       if (!mounted) return;
       Navigator.pushNamed(context, '/register-success');
     } catch (_) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('کچھ غلط ہو گیا، دوبارہ کوشش کریں')),
+        SnackBar(content: Text(l10n.errorLoadingCities)),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -84,308 +86,246 @@ class _WorkerRegistrationScreenState extends State<WorkerRegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(title: const Text('کاریگر رجسٹریشن')),
-        body: FooterNote(
-          child: Stack(
-            children: [
-              // Main content
-              Opacity(
-                opacity: _isSubmitting ? 0.5 : 1,
-                child: AbsorbPointer(
-                  absorbing: _isSubmitting,
-                  child: SafeArea(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: _isLoading
-                          ? const SizedBox.shrink() // hide form until data fetched
-                          : FutureBuilder<Map<String, List<String>>>(
-                              future: _citiesFuture,
-                              builder: (context, snapshot) {
+    return Scaffold(
+        appBar: AppBar(title: Text(l10n.workerRegistrationTitle)),
+        body: SingleChildScrollView(
+            child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: _isLoading
+                ? SizedBox(height: 300, child: Center(child: CircularProgressIndicator(color: theme.primaryColor)))
+                : FutureBuilder<Map<String, List<String>>>(
+                    future: _citiesFuture,
+                    builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox.shrink();
+                        }
+
+                        if (snapshot.hasError || !snapshot.hasData) {
+                        return Center(
+                            child: Text(
+                            l10n.errorLoadingCities,
+                            style: TextStyle(color: theme.colorScheme.error),
+                            ),
+                        );
+                        }
+
+                        final cities = snapshot.data!;
+
+                        return Form(
+                        key: _formKey,
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                            Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                color: theme.colorScheme.secondary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: theme.colorScheme.secondary.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                children: [
+                                    Icon(Icons.info_outline, color: theme.colorScheme.secondary),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                    child: Text(
+                                        l10n.findWorkerInstruction, // Reusing existing string or add new "Fill details carefully"
+                                        style: TextStyle(color: theme.colorScheme.secondary),
+                                    ),
+                                    ),
+                                ],
+                                ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            _buildSectionHeader(context, 'Personal Information'),
+                            
+                            // Name
+                            TextFormField(
+                                controller: _nameController,
+                                decoration: InputDecoration(
+                                labelText: l10n.labelName,
+                                hintText: l10n.hintName,
+                                prefixIcon: const Icon(Icons.person),
+                                ),
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                    ? l10n.errorName
+                                    : null,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Phone
+                            TextFormField(
+                                controller: _phoneController,
+                                keyboardType: TextInputType.phone,
+                                decoration: InputDecoration(
+                                labelText: l10n.labelPhone,
+                                hintText: l10n.hintPhone,
+                                prefixIcon: const Icon(Icons.phone),
+                                ),
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                    ? l10n.errorPhone
+                                    : null,
+                            ),
+                            const SizedBox(height: 32),
+
+                            _buildSectionHeader(context, 'Location'),
+
+                            // Province
+                            DropdownButtonFormField<String>(
+                                value: _selectedProvince,
+                                decoration: InputDecoration(
+                                labelText: l10n.selectProvince,
+                                prefixIcon: const Icon(Icons.map),
+                                ),
+                                items: cities.keys
+                                    .map(
+                                        (province) =>
+                                            DropdownMenuItem(
+                                            value: province,
+                                            child: Text(province),
+                                            ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                    setState(() {
+                                    _selectedProvince = value;
+                                    _selectedCity = null;
+                                    });
+                                },
+                                validator: (value) => value == null
+                                    ? l10n.errorSelectProvince
+                                    : null,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // City
+                            DropdownButtonFormField<String>(
+                                value: _selectedCity,
+                                decoration: InputDecoration(
+                                labelText: l10n.selectCity,
+                                prefixIcon: const Icon(Icons.location_city),
+                                ),
+                                items: _selectedProvince == null
+                                    ? []
+                                    : cities[_selectedProvince!]!
+                                            .map(
+                                            (city) =>
+                                                DropdownMenuItem(
+                                                    value: city,
+                                                    child: Text(city),
+                                                ),
+                                            )
+                                            .toList(),
+                                onChanged: (value) => setState(
+                                    () => _selectedCity = value,
+                                ),
+                                validator: (value) => value == null
+                                    ? l10n.errorSelectCity
+                                    : null,
+                            ),
+                            const SizedBox(height: 32),
+
+                            _buildSectionHeader(context, 'Skills'),
+
+                            // Skills
+                            FutureBuilder<List<String>>(
+                                future: _skillsFuture,
+                                builder: (context, snapshot) {
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
-                                  return const SizedBox.shrink();
+                                    return const LinearProgressIndicator();
                                 }
-
-                                if (snapshot.hasError || !snapshot.hasData) {
-                                  return Center(
-                                    child: Text(
-                                      'شہر لوڈ کرنے میں مسئلہ ہوا',
-                                      style: theme.textTheme.bodyLarge,
+                                if (snapshot.hasError ||
+                                    !snapshot.hasData) {
+                                    return Text(l10n.errorLoadingSkills, style: TextStyle(color: theme.colorScheme.error));
+                                }
+                                final skills = snapshot.data!;
+                                return Container(
+                                    decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.shade300),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: theme.cardColor,
                                     ),
-                                  );
-                                }
-
-                                final cities = snapshot.data!;
-
-                                return Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
+                                    child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
-                                      Text(
-                                        'براہِ کرم اپنی درست معلومات درج کریں',
-                                        style: theme.textTheme.bodyLarge,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 20),
-
-                                      // Name
-                                      Card(
-                                        elevation: 2,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                        Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Text(
+                                            l10n.labelSkill,
+                                            style: const TextStyle(fontWeight: FontWeight.bold),
                                         ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(12),
-                                          child: TextFormField(
-                                            controller: _nameController,
-                                            decoration: const InputDecoration(
-                                              labelText: 'نام',
-                                              hintText: 'مثال: محمد اسلم',
-                                              border: InputBorder.none,
-                                            ),
-                                            validator: (value) =>
-                                                value == null || value.isEmpty
-                                                ? 'براہِ کرم اپنا نام درج کریں'
-                                                : null,
-                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-
-                                      // Phone
-                                      Card(
-                                        elevation: 2,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(12),
-                                          child: TextFormField(
-                                            controller: _phoneController,
-                                            keyboardType: TextInputType.phone,
-                                            decoration: const InputDecoration(
-                                              labelText: 'فون نمبر',
-                                              hintText: 'مثال: 03XXXXXXXXX',
-                                              border: InputBorder.none,
-                                            ),
-                                            validator: (value) =>
-                                                value == null || value.isEmpty
-                                                ? 'براہِ کرم اپنا فون نمبر درج کریں'
-                                                : null,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-
-                                      // Province
-                                      Card(
-                                        elevation: 2,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                          ),
-                                          child: DropdownButtonFormField<String>(
-                                            value: _selectedProvince,
-                                            decoration: const InputDecoration(
-                                              labelText: 'صوبہ منتخب کریں',
-                                              border: InputBorder.none,
-                                            ),
-                                            items: cities.keys
-                                                .map(
-                                                  (province) =>
-                                                      DropdownMenuItem(
-                                                        value: province,
-                                                        child: Text(province),
-                                                      ),
-                                                )
-                                                .toList(),
-                                            onChanged: (value) {
-                                              setState(() {
-                                                _selectedProvince = value;
-                                                _selectedCity = null;
-                                              });
+                                        const Divider(height: 1),
+                                        ...skills.map(
+                                            (skill) => CheckboxListTile(
+                                            title: Text(skill),
+                                            value: _selectedSkills
+                                                .contains(skill),
+                                            activeColor: theme.primaryColor,
+                                            onChanged: (selected) {
+                                                setState(() {
+                                                if (selected ==
+                                                    true) {
+                                                    _selectedSkills.add(
+                                                    skill,
+                                                    );
+                                                } else {
+                                                    _selectedSkills
+                                                        .remove(skill);
+                                                }
+                                                });
                                             },
-                                            validator: (value) => value == null
-                                                ? 'براہِ کرم صوبہ منتخب کریں'
-                                                : null,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-
-                                      // City
-                                      Card(
-                                        elevation: 2,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                          ),
-                                          child: DropdownButtonFormField<String>(
-                                            value: _selectedCity,
-                                            decoration: const InputDecoration(
-                                              labelText: 'شہر منتخب کریں',
-                                              border: InputBorder.none,
                                             ),
-                                            items: _selectedProvince == null
-                                                ? []
-                                                : cities[_selectedProvince!]!
-                                                      .map(
-                                                        (city) =>
-                                                            DropdownMenuItem(
-                                                              value: city,
-                                                              child: Text(city),
-                                                            ),
-                                                      )
-                                                      .toList(),
-                                            onChanged: (value) => setState(
-                                              () => _selectedCity = value,
-                                            ),
-                                            validator: (value) => value == null
-                                                ? 'براہِ کرم شہر منتخب کریں'
-                                                : null,
-                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-
-                                      // Skills
-                                      FutureBuilder<List<String>>(
-                                        future: _skillsFuture,
-                                        builder: (context, snapshot) {
-                                          if (snapshot.connectionState ==
-                                              ConnectionState.waiting) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          if (snapshot.hasError ||
-                                              !snapshot.hasData) {
-                                            return Center(
-                                              child: Text(
-                                                'مہارتیں لوڈ کرنے میں مسئلہ ہوا',
-                                                style:
-                                                    theme.textTheme.bodyLarge,
-                                              ),
-                                            );
-                                          }
-                                          final skills = snapshot.data!;
-                                          return Card(
-                                            elevation: 2,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(12),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.stretch,
-                                                children: [
-                                                  Text(
-                                                    'مہارت منتخب کریں',
-                                                    style: theme
-                                                        .textTheme
-                                                        .bodyLarge,
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  ...skills.map(
-                                                    (skill) => CheckboxListTile(
-                                                      title: Text(skill),
-                                                      value: _selectedSkills
-                                                          .contains(skill),
-                                                      onChanged: (selected) {
-                                                        setState(() {
-                                                          if (selected ==
-                                                              true) {
-                                                            _selectedSkills.add(
-                                                              skill,
-                                                            );
-                                                          } else {
-                                                            _selectedSkills
-                                                                .remove(skill);
-                                                          }
-                                                        });
-                                                      },
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      const SizedBox(height: 30),
-
-                                      // Submit
-                                      ElevatedButton(
-                                        onPressed: _isSubmitting
-                                            ? null
-                                            : _submitForm,
-                                        style: ElevatedButton.styleFrom(
-                                          minimumSize: const Size(
-                                            double.infinity,
-                                            56,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'رجسٹریشن مکمل کریں',
-                                          style: TextStyle(fontSize: 18),
-                                        ),
-                                      ),
                                     ],
-                                  ),
+                                    ),
                                 );
-                              },
+                                },
                             ),
-                    ),
-                  ),
-                ),
-              ),
+                            const SizedBox(height: 40),
 
-              // Centered loading overlay
-              if (_isLoading || _isSubmitting)
-                Container(
-                  color: Theme.of(
-                    context,
-                  ).scaffoldBackgroundColor.withValues(alpha: (0.7 * 255)),
-                  child: Center(
-                    child: SizedBox(
-                      width: 80,
-                      height: 80,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 6,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Theme.of(context).primaryColor,
+                            // Submit
+                            SizedBox(
+                                height: 56,
+                                child: ElevatedButton(
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : _submitForm,
+                                child: _isSubmitting 
+                                    ? const CircularProgressIndicator(color: Colors.white)
+                                    : Text(
+                                        l10n.btnRegister,
+                                        style: const TextStyle(fontSize: 18),
+                                    ),
+                                ),
+                            ),
+                            const SizedBox(height: 40),
+                            ],
                         ),
-                      ),
-                    ),
-                  ),
+                        );
+                    },
                 ),
-            ],
-          ),
+            ),
+        ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).primaryColor,
+          letterSpacing: 1.0,
         ),
       ),
     );
